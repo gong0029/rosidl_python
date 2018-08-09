@@ -176,6 +176,34 @@ nested_type = '%s__%s__%s' % (field.type.pkg_name, 'msg', field.type.type)
     }
 @[    end if]@
 @[  elif field.type.is_array]@
+
+
+@#add wl 
+@[    if field.type.type == 'uint8']@
+
+    if(PyBytes_Check(field)){
+        Py_ssize_t size = PyBytes_Size(field);
+
+        if (!rosidl_generator_c__uint8__Array__init(&(ros_message->@(field.name)), size)) {
+            PyErr_SetString(PyExc_RuntimeError, "unable to create uint8__Array ros_message");
+            Py_DECREF(field);
+            return NULL;
+        }
+        
+@[    if field.type.array_size is None or field.type.is_upper_bound]@
+    @primitive_msg_type_to_c(field.type.type) * dest = ros_message->@(field.name).data;
+@[    else]@
+    @primitive_msg_type_to_c(field.type.type) * dest = ros_message->@(field.name);
+@[    end if]@
+        
+      
+
+        char * d = PyBytes_AsString(field);
+        memcpy(dest, d, sizeof(@primitive_msg_type_to_c(field.type.type))*size);
+	}else{  
+@# add 1
+        
+
     PyObject * seq_field = PySequence_Fast(field, "expected a sequence in '@(field.name)'");
     if (!seq_field) {
       Py_DECREF(field);
@@ -264,6 +292,106 @@ nested_type = '%s__%s__%s' % (field.type.pkg_name, 'msg', field.type.type)
 @[    end if]@
     }
     Py_DECREF(seq_field);
+    
+    }
+    
+@# add 2
+@[   else]@
+
+
+    PyObject * seq_field = PySequence_Fast(field, "expected a sequence in '@(field.name)'");
+    if (!seq_field) {
+      Py_DECREF(field);
+      return false;
+    }
+@[    if field.type.array_size is None or field.type.is_upper_bound]@
+    Py_ssize_t size = PySequence_Size(field);
+    if (-1 == size) {
+      Py_DECREF(seq_field);
+      Py_DECREF(field);
+      return false;
+    }
+@[      if field.type.type == 'string']@
+    if (!rosidl_generator_c__String__Array__init(&(ros_message->@(field.name)), size)) {
+      PyErr_SetString(PyExc_RuntimeError, "unable to create String__Array ros_message");
+      Py_DECREF(seq_field);
+      Py_DECREF(field);
+      return false;
+    }
+@[      else]@
+    if (!rosidl_generator_c__@(field.type.type)__Array__init(&(ros_message->@(field.name)), size)) {
+      PyErr_SetString(PyExc_RuntimeError, "unable to create @(field.type.type)__Array ros_message");
+      Py_DECREF(seq_field);
+      Py_DECREF(field);
+      return false;
+    }
+@[      end if]@
+    @primitive_msg_type_to_c(field.type.type) * dest = ros_message->@(field.name).data;
+@[    else]@
+    Py_ssize_t size = @(field.type.array_size);
+    @primitive_msg_type_to_c(field.type.type) * dest = ros_message->@(field.name);
+@[    end if]@
+    for (Py_ssize_t i = 0; i < size; ++i) {
+      PyObject * item = PySequence_Fast_GET_ITEM(seq_field, i);
+      if (!item) {
+        Py_DECREF(seq_field);
+        Py_DECREF(field);
+        return false;
+      }
+@[    if field.type.type == 'char']@
+      assert(PyUnicode_Check(item));
+      @primitive_msg_type_to_c(field.type.type) tmp = PyUnicode_1BYTE_DATA(item)[0];
+@[    elif field.type.type == 'byte']@
+      assert(PyBytes_Check(item));
+      @primitive_msg_type_to_c(field.type.type) tmp = PyBytes_AS_STRING(item)[0];
+@[    elif field.type.type == 'string']@
+      assert(PyUnicode_Check(item));
+      rosidl_generator_c__String__assign(&dest[i], (char *)PyUnicode_1BYTE_DATA(item));
+@[    elif field.type.type == 'bool']@
+      assert(PyBool_Check(item));
+      @primitive_msg_type_to_c(field.type.type) tmp = (item == Py_True);
+@[    elif field.type.type in ['float32', 'float64']]@
+      assert(PyFloat_Check(item));
+@[      if field.type.type == 'float32']@
+      @primitive_msg_type_to_c(field.type.type) tmp = (float)PyFloat_AS_DOUBLE(item);
+@[      else]@
+      @primitive_msg_type_to_c(field.type.type) tmp = PyFloat_AS_DOUBLE(item);
+@[      end if]@
+@[    elif field.type.type in [
+        'int8',
+        'int16',
+        'int32',
+    ]]@
+      assert(PyLong_Check(item));
+      @primitive_msg_type_to_c(field.type.type) tmp = (@(primitive_msg_type_to_c(field.type.type)))PyLong_AsLong(item);
+@[    elif field.type.type in [
+        'uint8',
+        'uint16',
+        'uint32',
+    ]]@
+      assert(PyLong_Check(item));
+@[      if field.type.type == 'uint32']@
+      @primitive_msg_type_to_c(field.type.type) tmp = PyLong_AsUnsignedLong(item);
+@[      else]@
+      @primitive_msg_type_to_c(field.type.type) tmp = (@(primitive_msg_type_to_c(field.type.type)))PyLong_AsUnsignedLong(item);
+@[      end if]
+@[    elif field.type.type == 'int64']@
+      assert(PyLong_Check(item));
+      @primitive_msg_type_to_c(field.type.type) tmp = PyLong_AsLongLong(item);
+@[    elif field.type.type == 'uint64']@
+      assert(PyLong_Check(item));
+      @primitive_msg_type_to_c(field.type.type) tmp = PyLong_AsUnsignedLongLong(item);
+@[    end if]@
+@[    if field.type.type != 'string']@
+      memcpy(&dest[i], &tmp, sizeof(@primitive_msg_type_to_c(field.type.type)));
+@[    end if]@
+    }
+    Py_DECREF(seq_field);
+
+    
+@[	end if]@
+@# end add wl
+    
 @[  elif field.type.type == 'char']@
     assert(PyUnicode_Check(field));
     ros_message->@(field.name) = PyUnicode_1BYTE_DATA(field)[0];
@@ -417,6 +545,9 @@ nested_type = '%s__%s__%s' % (field.type.pkg_name, 'msg', field.type.type)
       return NULL;
     }
 @[    end if]@
+
+
+
 @[  elif field.type.is_array]@
 @[    if field.type.array_size is None or field.type.is_upper_bound]@
     size_t size = ros_message->@(field.name).size;
@@ -425,6 +556,15 @@ nested_type = '%s__%s__%s' % (field.type.pkg_name, 'msg', field.type.type)
     size_t size = @(field.type.array_size);
     @primitive_msg_type_to_c(field.type.type) * src = ros_message->@(field.name);
 @[    end if]@
+
+
+@#add wl
+@[    if field.type.type == 'uint8']@
+
+    field = PyBytes_FromStringAndSize(src, size);
+    
+@[    else]@
+
     field = PyList_New(size);
     if (!field) {
       return NULL;
@@ -477,6 +617,11 @@ nested_type = '%s__%s__%s' % (field.type.pkg_name, 'msg', field.type.type)
       assert(rc == 0);
 @[    end if]@
     }
+    
+@[    end if]@
+@#end add wl
+    
+    
     assert(PySequence_Check(field));
 @[  elif field.type.type == 'char']@
     field = Py_BuildValue("C", ros_message->@(field.name));
