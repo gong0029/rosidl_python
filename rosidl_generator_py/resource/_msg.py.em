@@ -114,6 +114,25 @@ class @(spec.base_type.type)(metaclass=Metaclass):
         '_@(field.name)',
 @[end for]@
     ]
+
+@# wl add
+    _slot_types = [
+@{
+print(' ' * 4 * 2,end='')
+for field in spec.fields:
+    if not field.type.is_primitive_type():
+        if field.type.is_array:
+            print('\'%s/%s[]\',' % (field.type.pkg_name, field.type.type),end='')
+        else:
+            print('\'%s/%s\',' % (field.type.pkg_name, field.type.type),end='')
+    else :
+        print( get_python_type(field.type),',',end='')
+}@
+    ]
+
+@# wl add end
+
+
 @
 @[if len(spec.fields) > 0]@
 
