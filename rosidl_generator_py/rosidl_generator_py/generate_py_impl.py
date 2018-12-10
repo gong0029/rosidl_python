@@ -35,6 +35,10 @@ def generate_py(generator_arguments_file, typesupport_impls):
         os.path.join(template_dir, '_msg.py.em'): ['_%s.py'],
         os.path.join(template_dir, '_msg_support.c.em'): ['_%s_s.c'],
     }
+    common_msgs = {
+        os.path.join(template_dir, '__common.c.em'): ['__common.c'],
+        os.path.join(template_dir, '__common.h.em'): ['__common.h'],
+    }
     mapping_msg_pkg_extension = {
         os.path.join(template_dir, '_msg_pkg_typesupport_entry_point.c.em'):
         type_support_impl_by_filename.keys(),
@@ -59,6 +63,40 @@ def generate_py(generator_arguments_file, typesupport_impls):
         'convert_camel_case_to_lower_case_underscore': convert_camel_case_to_lower_case_underscore,
     }
     latest_target_timestamp = get_newest_modification_time(args['target_dependencies'])
+
+
+    for ros_interface_file in args['ros_interface_files']:
+        extension = os.path.splitext(ros_interface_file)[1]
+        #msg  srv
+        subfolder = os.path.basename(os.path.dirname(ros_interface_file))
+
+        for template_file, generated_filenames in common_msgs.items():
+
+            for generated_filename in generated_filenames:
+
+                generated_file = os.path.join(
+                    args['output_dir'], subfolder, generated_filename)
+
+                content = ""
+                with open(template_file) as f:
+                    content = f.read()
+
+                if os.path.exists(generated_file):
+                    timestamp = os.path.getmtime(generated_file)
+                    if latest_target_timestamp is None or timestamp > latest_target_timestamp:
+                        with open(generated_file, 'r') as h:
+                            if h.read() == content:
+                                continue
+                else:
+                    # create folder if necessary
+                    try:
+                        os.makedirs(os.path.dirname(generated_file))
+                    except FileExistsError:
+                        pass
+
+                with open(generated_file, 'w') as h:
+                    h.write(content)
+
 
     modules = defaultdict(list)
     message_specs = []
@@ -94,6 +132,7 @@ def generate_py(generator_arguments_file, typesupport_impls):
                 expand_template(
                     template_file, data, generated_file,
                     minimum_timestamp=latest_target_timestamp)
+
 
     for subfolder in modules.keys():
         import_list = {}
