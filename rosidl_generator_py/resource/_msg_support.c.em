@@ -15,8 +15,11 @@
 #include <Python.h>
 #include <stdbool.h>
 
+#include "__common.h"
+
 #include <@(spec.base_type.pkg_name)/@(subfolder)/@(module_name)__struct.h>
 #include <@(spec.base_type.pkg_name)/@(subfolder)/@(module_name)__functions.h>
+
 
 @{
 have_not_included_primitive_arrays = True
@@ -53,11 +56,27 @@ if not field.type.is_primitive_type() and field.type.is_array:
 msg_typename = '%s__%s__%s' % (spec.base_type.pkg_name, subfolder, spec.base_type.type)
 }@
 
+@{
+names = []
+for field in spec.fields:
+    if not field.type.is_primitive_type():
+        name = field.type.pkg_name +".msg._"+convert_camel_case_to_lower_case_underscore(field.type.type)+"."+field.type.type
+        if name not in names:
+            names.append(name)
+            print("static __thread int c_from_py_",name.replace(".","_"),"=0;",sep="")
+            print("static __thread int c_to_py_",name.replace(".","_"),"=0;",sep="")
+            
+name = spec.base_type.pkg_name+"."+subfolder+"._"+module_name+"."+spec.base_type.type
+print("static __thread int class_",name.replace(".","_"),"=0;",sep="")
+}@
+
+
 bool @(spec.base_type.pkg_name)_@(module_name)__convert_from_py(PyObject * _pymsg, void * _ros_message)
 {
 @{
 full_classname = '%s.%s._%s.%s' % (spec.base_type.pkg_name, subfolder, module_name, spec.base_type.type)
 }@
+/*
   // check that the passed message is of the expected Python class
   {
     char full_classname_dest[@(len(full_classname) + 1)];
@@ -89,6 +108,7 @@ full_classname = '%s.%s._%s.%s' % (spec.base_type.pkg_name, subfolder, module_na
         "@(full_classname)",
         full_classname_dest, @(len(full_classname))) == 0);
   }
+*/
   @(msg_typename) * ros_message = _ros_message;
 @[if not spec.fields]@
   (void)ros_message;
@@ -103,6 +123,8 @@ full_classname = '%s.%s._%s.%s' % (spec.base_type.pkg_name, subfolder, module_na
 @{
 nested_type = '%s__%s__%s' % (field.type.pkg_name, 'msg', field.type.type)
 }@
+
+/*
     typedef bool (* convert_from_py_signature)(PyObject *, void *);
     convert_from_py_signature convert_from_py = NULL;
     // get conversion function
@@ -137,6 +159,28 @@ nested_type = '%s__%s__%s' % (field.type.pkg_name, 'msg', field.type.type)
         return false;
       }
     }
+*/
+@{
+name = field.type.pkg_name +".msg._"+convert_camel_case_to_lower_case_underscore(field.type.type)+"."+field.type.type
+name = "c_from_py_"+name.replace(".","_")
+print(" "*4, "if(",name,"==0) {",sep="")
+print(" "*4*2,name,"=getHashVal(\""+name+"\");",sep="")
+print(" "*4,"}",sep="")
+}@
+            
+    convert_from_py_signature convert_from_py = NULL;
+    // get conversion function
+    {
+        convert_from_py = get_convert_from_py_signature("@(field.type.pkg_name).msg._@convert_camel_case_to_lower_case_underscore(field.type.type)",
+            "@(field.type.type)",@name);
+
+        if (!convert_from_py) {
+            Py_DECREF(field);
+            return false;
+         }
+    }
+
+
 @[    if field.type.is_array]@
     PyObject * seq_field = PySequence_Fast(field, "expected a sequence in '@(field.name)'");
     if (!seq_field) {
@@ -461,6 +505,7 @@ PyObject * @(spec.base_type.pkg_name)_@(module_name)__convert_to_py(void * raw_r
   /* NOTE(esteve): Call constructor of @(spec.base_type.type) */
   PyObject * _pymessage = NULL;
   {
+  /*
     PyObject * pymessage_module = PyImport_ImportModule("@(spec.base_type.pkg_name).@(subfolder)._@(module_name)");
     assert(pymessage_module);
     PyObject * pymessage_class = PyObject_GetAttrString(pymessage_module, "@(spec.base_type.type)");
@@ -468,6 +513,20 @@ PyObject * @(spec.base_type.pkg_name)_@(module_name)__convert_to_py(void * raw_r
     Py_DECREF(pymessage_module);
     _pymessage = PyObject_CallObject(pymessage_class, NULL);
     Py_DECREF(pymessage_class);
+    
+    */
+    
+@{
+name = name = spec.base_type.pkg_name+"."+subfolder+"._"+module_name+"."+spec.base_type.type
+name = "class_"+name.replace(".","_")
+print(" "*4, "if(",name,"==0) {",sep="")
+print(" "*4*2,name,"=getHashVal(\""+name+"\");",sep="")
+print(" "*4,"}",sep="")
+}@
+    
+     PyObject * pymessage_class = get_class("@(spec.base_type.pkg_name).@(subfolder)._@(module_name)","@(spec.base_type.type)",@name);
+    _pymessage = PyObject_CallObject(pymessage_class, NULL);
+    
     if (!_pymessage) {
       return NULL;
     }
@@ -483,6 +542,8 @@ PyObject * @(spec.base_type.pkg_name)_@(module_name)__convert_to_py(void * raw_r
 @{
 nested_type = '%s__%s__%s' % (field.type.pkg_name, 'msg', field.type.type)
 }@
+
+/*
     typedef PyObject *(* convert_to_py_signature)(void *);
     convert_to_py_signature convert_to_py = NULL;
     // get conversion function
@@ -512,6 +573,29 @@ nested_type = '%s__%s__%s' % (field.type.pkg_name, 'msg', field.type.type)
         return NULL;
       }
     }
+    
+*/
+
+@{
+name = field.type.pkg_name +".msg._"+convert_camel_case_to_lower_case_underscore(field.type.type)+"."+field.type.type
+name = "c_to_py_"+name.replace(".","_")
+print(" "*4, "if(",name,"==0) {",sep="")
+print(" "*4*2,name,"=getHashVal(\""+name+"\");",sep="")
+print(" "*4,"}",sep="")
+}@
+
+    convert_to_py_signature convert_to_py = NULL;
+    // get conversion function
+    {
+        convert_to_py = get_convert_to_py_signature("@(field.type.pkg_name).msg._@convert_camel_case_to_lower_case_underscore(field.type.type)",
+        "@(field.type.type)",@name);
+        
+        if (!convert_to_py) {
+            return NULL;
+        }
+    }
+    
+    
 @[    if field.type.is_array]@
 @[      if field.type.array_size is None or field.type.is_upper_bound]@
     size_t size = ros_message->@(field.name).size;
