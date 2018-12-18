@@ -17,6 +17,7 @@ typedef bool (* convert_from_py_signature)(PyObject *, void *);
 struct HashLink {
     KeyType key;
     ValueType value;
+    int hashVal;
     struct HashLink *next;
 };
 
@@ -38,6 +39,8 @@ int stringHash1(char* str);
 
 //the second hashing function
 int stringHash2(char* str);
+
+int getHashVal(char* str);
 
 void _initMap(struct HashMap* ht, int tableSize);
 
@@ -62,7 +65,7 @@ void _setTableSize(struct HashMap* ht, int newTableSize);
  * if a hashLink already exists in the table for the key provided you should replace that hashLink
  * (really this only requires replacing the value v).
  */
-void insertMap(struct HashMap* ht, KeyType k, ValueType v);
+void insertMap(struct HashMap* ht, KeyType k, ValueType v, int hashVal);
 
 /*
  * this returns the value stored in a hashLink specified by the key k.
@@ -73,20 +76,20 @@ void insertMap(struct HashMap* ht, KeyType k, ValueType v);
  *
  * if the supplied key is not in the hashtable return NULL;
  */
-ValueType atMap(struct HashMap* ht, KeyType k);
+ValueType atMap(struct HashMap* ht, int hashVal);
 
 /*
  * a simple yes/no if the key is in the hashtable.
  * 0 is no, all other values are yes.
  */
-int containsKey(struct HashMap* ht, KeyType k);
+int containsKey(struct HashMap* ht, int hashVal);
 /*
  find the hashlink for the supplied key and remove it, also freeing the memory
  for that hashlink. it is not an error to be unable to find the hashlink, if it
  cannot be found do nothing (or print a message) but do not use an assert which
  will end your program.
  */
-void removeKey(struct HashMap * ht, KeyType k);
+void removeKey(struct HashMap * ht, int hashVal);
 
 /*
  * returns the number of hashLinks in the table
@@ -115,12 +118,12 @@ void printValue(ValueType v);
 
 void dest_tid(void* v_tid);
 convert_from_py_signature get_convert_from_py_signature(char* module_name,
-        char* class_name);
+        char* class_name,int hashVal);
         
 convert_to_py_signature get_convert_to_py_signature(char* module_name,
-        char* class_name);
+        char* class_name,int hashVal);
 PyObject* get_class(char* module_name,
-        char* class_name);
+        char* class_name,int hashVal);
 
 #endif /* ROSIDL_GENERATOR_PY_MSG_INCLUDE_COMMON_H_ */
 

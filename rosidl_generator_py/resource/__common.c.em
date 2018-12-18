@@ -8,7 +8,7 @@
 
 #include "__common.h"
 
-__thread pthread_key_t key = 1000;
+__thread pthread_key_t key = -1;
 
 int stringHash1(char* str) {
     int i;
@@ -26,6 +26,21 @@ int stringHash2(char* str) {
         r += (i + 1) * str[i];
     }
     return r;
+}
+
+int getHashVal(char* str) {
+
+    int key_size = strlen(str)+1;
+
+    char* hashKey = (char*) malloc(sizeof(char) * key_size);
+    memcpy(hashKey, str, strlen(str));
+    hashKey[key_size-1] = '\0';
+    
+    int hashVal = stringHash2(hashKey);
+    free(hashKey);
+    
+    return hashVal;
+
 }
 
 void _initMap(struct HashMap* ht, int tableSize) {
@@ -108,7 +123,7 @@ void _setTableSize(struct HashMap* ht, int newTableSize) {
     while (i < ht->tableSize) {
         currLink = ht->table[i];
         while (currLink != 0) {
-            insertMap(newHM, currLink->key, currLink->value);
+            insertMap(newHM, currLink->key, currLink->value, currLink->hashVal);
             currLink = currLink->next;
         }
         i++;
@@ -121,16 +136,12 @@ void _setTableSize(struct HashMap* ht, int newTableSize) {
     ht->count = newHM->count;
 }
 
-void insertMap(struct HashMap* ht, KeyType k, ValueType v) {
+void insertMap(struct HashMap* ht, KeyType k, ValueType v, int hashVal) {
     int hashIndex;
     struct HashLink * newHashLink = (struct HashLink*) malloc(sizeof(struct HashLink));
     char* newKeyType = (char*) malloc(strlen(k)+1);
 
-    if(HASHING_FUNCTION == 1) {
-        hashIndex = stringHash1(k) % ht->tableSize;
-    } else {
-        hashIndex = stringHash2(k) % ht->tableSize;
-    }
+    hashIndex = hashVal % ht->tableSize;
 
     //ensure hashIndex is positive
     if(hashIndex < 0) {
@@ -140,8 +151,8 @@ void insertMap(struct HashMap* ht, KeyType k, ValueType v) {
     assert(newHashLink);
 
     //remove duplicate keys so new key replaces old key
-    if(containsKey(ht,k)) {
-        removeKey(ht,k);
+    if(containsKey(ht,hashVal)) {
+        removeKey(ht,hashVal);
     }
 
     //Initialize new hashLink and add to appropriate hash index
@@ -149,6 +160,7 @@ void insertMap(struct HashMap* ht, KeyType k, ValueType v) {
 
     newHashLink->key = newKeyType;
     newHashLink->value = v;
+    newHashLink->hashVal = hashVal;
     newHashLink->next = ht->table[hashIndex];
     ht->table[hashIndex] = newHashLink;
 
@@ -160,18 +172,15 @@ void insertMap(struct HashMap* ht, KeyType k, ValueType v) {
     }
 }
 
-ValueType atMap(struct HashMap* ht, KeyType k) {
+ValueType atMap(struct HashMap* ht, int hashVal) {
     int hashIndex;
     struct HashLink* currLink;
 
-    if(HASHING_FUNCTION == 1)
-    hashIndex = stringHash1(k) % ht->tableSize;
-    else
-    hashIndex = stringHash2(k) % ht->tableSize;
+    hashIndex = hashVal % ht->tableSize;
 
     currLink = ht->table[hashIndex];;
     while(currLink != 0) {
-        if(strcmp(k, currLink->key) == 0) {
+        if(hashVal == currLink->hashVal) {
             return currLink->value;
         }
         currLink = currLink->next;
@@ -181,20 +190,15 @@ ValueType atMap(struct HashMap* ht, KeyType k) {
     return NULL;
 }
 
-int containsKey(struct HashMap* ht, KeyType k) {
+int containsKey(struct HashMap* ht, int hashVal) {
     int hashIndex;
     struct HashLink* currLink;
 
-    if(HASHING_FUNCTION == 1) {
-        hashIndex = stringHash1(k) % ht->tableSize;
-    }
-    else {
-        hashIndex = stringHash2(k) % ht->tableSize;
-    }
-
+    hashIndex = hashVal % ht->tableSize;
+  
     currLink = ht->table[hashIndex];
     while(currLink != 0) {
-        if(strcmp(k, currLink->key) == 0) {
+        if(hashVal == currLink->hashVal) {
             return 1;
         }
         currLink = currLink->next;
@@ -203,21 +207,18 @@ int containsKey(struct HashMap* ht, KeyType k) {
     return 0;
 }
 
-void removeKey(struct HashMap* ht, KeyType k) {
+void removeKey(struct HashMap* ht, int hashVal) {
     int hashIndex;
     struct HashLink * lastLink, * currLink;
 
-    if(HASHING_FUNCTION == 1)
-    hashIndex = stringHash1(k) % ht->tableSize;
-    else
-    hashIndex = stringHash2(k) % ht->tableSize;
+    hashIndex = hashVal % ht->tableSize;
 
     currLink = ht->table[hashIndex];
     lastLink = currLink;
 
     //check each member in linked list for the requested KeyType and return value
     while(currLink != 0) {
-        if(strcmp(k, currLink->key) == 0) {
+        if(hashVal == currLink->hashVal) {
             if(lastLink == currLink) {
                 lastLink = currLink->next;
                 ht->table[hashIndex] = lastLink;
@@ -262,7 +263,7 @@ void dest_tid(void* v_tid) {
 }
 
 convert_from_py_signature get_convert_from_py_signature(char* module_name,
-        char* class_name) {
+        char* class_name,int hashVal) {
 
     void* data = pthread_getspecific(key);
     if (data == NULL) {
@@ -281,21 +282,22 @@ convert_from_py_signature get_convert_from_py_signature(char* module_name,
     char* prefix = "c_from_py_";
     int key_size = strlen(module_name) + strlen(class_name) + strlen(prefix)+1;
 
-    char* hashKey = (char*) malloc(sizeof(char) * key_size);
-    memcpy(hashKey, prefix, strlen(prefix));
-    memcpy(&hashKey[strlen(prefix)], module_name, strlen(module_name));
-    memcpy(&hashKey[strlen(prefix) + strlen(module_name)], class_name,
-            strlen(class_name));
-    hashKey[key_size-1] = '\0';
-
     convert_from_py_signature convert_from_py = NULL;
 
-    if (containsKey(hm, hashKey)) {
-        convert_from_py = (convert_from_py_signature) atMap(hm, hashKey);
-        free(hashKey);
+    if (containsKey(hm, hashVal)) {
+        convert_from_py = (convert_from_py_signature) atMap(hm, hashVal);
         return convert_from_py;
     } else {
+    
+        char* hashKey = (char*) malloc(sizeof(char) * key_size);
+        memcpy(hashKey, prefix, strlen(prefix));
+        memcpy(&hashKey[strlen(prefix)], module_name, strlen(module_name));
+        memcpy(&hashKey[strlen(prefix) + strlen(module_name)], class_name,
+                strlen(class_name));
+        hashKey[key_size-1] = '\0';
+    
         printf("--------------------------------get_convert_from_py_signature containsKey:%s\n",hashKey);
+        
         PyObject * msg_module = PyImport_ImportModule(module_name);
         if (!msg_module) {
             return NULL;
@@ -325,7 +327,7 @@ convert_from_py_signature get_convert_from_py_signature(char* module_name,
             return NULL;
         }
 
-        insertMap(hm, hashKey, convert_from_py);
+        insertMap(hm, hashKey, convert_from_py,hashVal);
 
         free(hashKey);
 
@@ -334,7 +336,7 @@ convert_from_py_signature get_convert_from_py_signature(char* module_name,
 }
 
 convert_to_py_signature get_convert_to_py_signature(char* module_name,
-        char* class_name) {
+        char* class_name,int hashVal) {
 
     void* data = pthread_getspecific(key);
     if (data == NULL) {
@@ -353,21 +355,22 @@ convert_to_py_signature get_convert_to_py_signature(char* module_name,
     char* prefix = "c_to_py_";
     int key_size = strlen(module_name) + strlen(class_name) + strlen(prefix)+1;
 
-    char* hashKey = (char*) malloc(sizeof(char) * key_size);
-    memcpy(hashKey, prefix, strlen(prefix));
-    memcpy(&hashKey[strlen(prefix)], module_name, strlen(module_name));
-    memcpy(&hashKey[strlen(prefix) + strlen(module_name)], class_name,
-            strlen(class_name));
-    hashKey[key_size-1] = '\0';
-
     convert_to_py_signature convert_to_py = NULL;
 
-    if (containsKey(hm, hashKey)) {
-        convert_to_py = (convert_to_py_signature) atMap(hm, hashKey);
-        free(hashKey);
+    if (containsKey(hm, hashVal)) {
+        convert_to_py = (convert_to_py_signature) atMap(hm, hashVal);
         return convert_to_py;
     } else {
+    
+        char* hashKey = (char*) malloc(sizeof(char) * key_size);
+        memcpy(hashKey, prefix, strlen(prefix));
+        memcpy(&hashKey[strlen(prefix)], module_name, strlen(module_name));
+        memcpy(&hashKey[strlen(prefix) + strlen(module_name)], class_name,
+                strlen(class_name));
+        hashKey[key_size-1] = '\0';
+    
         printf("--------------------------------get_convert_to_py_signature containsKey:%s\n",hashKey);
+        
         // get conversion function
         PyObject * msg_module = PyImport_ImportModule(module_name);
         if (!msg_module) {
@@ -397,7 +400,7 @@ convert_to_py_signature get_convert_to_py_signature(char* module_name,
             return NULL;
         }
 
-        insertMap(hm, hashKey, convert_to_py);
+        insertMap(hm, hashKey, convert_to_py,hashVal);
 
         free(hashKey);
 
@@ -406,7 +409,7 @@ convert_to_py_signature get_convert_to_py_signature(char* module_name,
 }
 
 PyObject* get_class(char* module_name,
-        char* class_name) {
+        char* class_name,int hashVal) {
 
     void* data = pthread_getspecific(key);
     if (data == NULL) {
@@ -425,29 +428,29 @@ PyObject* get_class(char* module_name,
     char* prefix = "class_";
     int key_size = strlen(module_name) + strlen(class_name) + strlen(prefix)+1;
 
-    char* hashKey = (char*) malloc(sizeof(char) * key_size);
-    memcpy(hashKey, prefix, strlen(prefix));
-    memcpy(&hashKey[strlen(prefix)], module_name, strlen(module_name));
-    memcpy(&hashKey[strlen(prefix) + strlen(module_name)], class_name,
-            strlen(class_name));
-    hashKey[key_size-1] = '\0';
-    
-
    PyObject * pymessage_class = NULL;
 
-   if (containsKey(hm, hashKey)) {
-       pymessage_class = (PyObject *) atMap(hm, hashKey);
-       free(hashKey);
+   if (containsKey(hm, hashVal)) {
+       pymessage_class = (PyObject *) atMap(hm, hashVal);
        return pymessage_class;
    } else {
+   
+        char* hashKey = (char*) malloc(sizeof(char) * key_size);
+        memcpy(hashKey, prefix, strlen(prefix));
+        memcpy(&hashKey[strlen(prefix)], module_name, strlen(module_name));
+        memcpy(&hashKey[strlen(prefix) + strlen(module_name)], class_name,
+                strlen(class_name));
+        hashKey[key_size-1] = '\0';
+    
         printf("--------------------------------get_class containsKey:%s\n",hashKey);
+        
         PyObject * pymessage_module = PyImport_ImportModule(module_name);
         assert(pymessage_module);
         pymessage_class = PyObject_GetAttrString(pymessage_module, class_name);
         assert(pymessage_class);
         Py_DECREF(pymessage_module);
 
-        insertMap(hm, hashKey, pymessage_class);
+        insertMap(hm, hashKey, pymessage_class,hashVal);
 
         free(hashKey);
 
