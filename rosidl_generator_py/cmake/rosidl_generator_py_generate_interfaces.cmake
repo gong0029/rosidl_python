@@ -43,9 +43,6 @@ foreach(_typesupport_impl ${_typesupport_impls})
   set(_generated_extension_${_typesupport_impl}_files "")
 endforeach()
 
-set(_has_add_msg_common "NO")
-set(_has_add_srv_common "NO")
-
 foreach(_idl_file ${rosidl_generate_interfaces_IDL_FILES})
   get_filename_component(_parent_folder "${_idl_file}" DIRECTORY)
   get_filename_component(_parent_folder "${_parent_folder}" NAME)
@@ -59,26 +56,11 @@ foreach(_idl_file ${rosidl_generate_interfaces_IDL_FILES})
     list(APPEND _generated_msg_c_files
       "${_output_path}/${_parent_folder}/_${_module_name}_s.c"
     )
-    
-    if(_has_add_msg_common STREQUAL "NO")
-    list(APPEND _generated_msg_c_files
-      "${_output_path}/${_parent_folder}/__common.c"
-    )
-    set(_has_add_msg_common "YES")
-    endif()
-    
   elseif(_parent_folder STREQUAL "srv")
     if("_${_module_name}_s.c" MATCHES "(.*)__response(.*)" OR "_${_module_name}_s.c" MATCHES "(.*)__request(.*)")
       list(APPEND _generated_srv_c_files
         "${_output_path}/${_parent_folder}/_${_module_name}_s.c"
       )
-    
-      if(_has_add_srv_common STREQUAL "NO")
-        list(APPEND _generated_srv_c_files
-          "${_output_path}/${_parent_folder}/__common.c"
-        )
-        set(_has_add_srv_common "YES")
-      endif()
     endif()
     list(APPEND _generated_srv_py_files
       "${_output_path}/${_parent_folder}/_${_module_name}.py"
