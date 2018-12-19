@@ -14,6 +14,7 @@
 @
 #include <Python.h>
 #include <stdbool.h>
+#include <pthread.h>
 
 #include <@(spec.base_type.pkg_name)/@(subfolder)/@(module_name)__struct.h>
 #include <@(spec.base_type.pkg_name)/@(subfolder)/@(module_name)__functions.h>
@@ -68,8 +69,52 @@ for field in spec.fields:
             print("static __thread convert_to_py_signature c_to_py_",name.replace(".","_"),"=NULL;",sep="")
             
 name = spec.base_type.pkg_name+"."+subfolder+"._"+module_name+"."+spec.base_type.type
-print("static __thread PyObject* class_",name.replace(".","_"),"=NULL;",sep="")
+name = "class_"+name.replace(".","_");
+print("static __thread pthread_key_t ",name,"=0;",sep="")
 }@
+
+void @(spec.base_type.pkg_name)_@(module_name)__dest_class(void* data) {  
+     PyObject * pymessage_class = (PyObject *) data;   
+     Py_DECREF(pymessage_class);
+ }
+
+PyObject* @(spec.base_type.pkg_name)_@(module_name)__get_class(const char* module_name, const char* class_name) {
+    
+    if(@name == 0) {
+        int i = 0;
+        int r = 0;
+        char* cls_name = "@name";
+        int len = strlen(cls_name);
+        for(i =0; i<len; i++) {
+            r += (i + 1) * cls_name[i];
+        }
+        @name = r;
+    }
+    void* data = pthread_getspecific(@name);
+    if (data == NULL) {
+        int rc = pthread_key_create(&@name, @(spec.base_type.pkg_name)_@(module_name)__dest_class); 
+        if(rc != 0) {
+            assert(rc == 0);
+        }
+
+        PyObject * pymessage_module = PyImport_ImportModule(module_name); 
+        assert(pymessage_module);  
+        PyObject * pymessage_class = PyObject_GetAttrString(pymessage_module, class_name);    
+        assert(pymessage_class);   
+        Py_DECREF(pymessage_module);
+        
+        rc = pthread_setspecific(@name, pymessage_class); 
+        assert(rc == 0);
+        
+        return pymessage_class;
+    }else {
+        PyObject * pymessage_class = NULL;
+        pymessage_class = (PyObject *) (data);
+        
+        return pymessage_class;
+    }
+
+} 
 
 
 bool @(spec.base_type.pkg_name)_@(module_name)__convert_from_py(PyObject * _pymsg, void * _ros_message)
@@ -548,24 +593,8 @@ PyObject * @(spec.base_type.pkg_name)_@(module_name)__convert_to_py(void * raw_r
     Py_DECREF(pymessage_class);
     
     */
-    
-@{
-name = name = spec.base_type.pkg_name+"."+subfolder+"._"+module_name+"."+spec.base_type.type
-name = "class_"+name.replace(".","_")
-print(" "*4, "if(",name,"==NULL) {",sep="")
-}@
 
-    PyObject * pymessage_module = PyImport_ImportModule("@(spec.base_type.pkg_name).@(subfolder)._@(module_name)");
-    assert(pymessage_module);
-    @name = PyObject_GetAttrString(pymessage_module, "@(spec.base_type.type)");
-    assert(@name);
-    Py_DECREF(pymessage_module);
-
-@{
-print(" "*4,"}",sep="")
-}@
-    PyObject * pymessage_class = @name;
-     //PyObject * pymessage_class = get_class("@(spec.base_type.pkg_name).@(subfolder)._@(module_name)","@(spec.base_type.type)",@name);
+    PyObject * pymessage_class = @(spec.base_type.pkg_name)_@(module_name)__get_class("@(spec.base_type.pkg_name).@(subfolder)._@(module_name)","@(spec.base_type.type)");
     _pymessage = PyObject_CallObject(pymessage_class, NULL);
     
     if (!_pymessage) {
@@ -708,7 +737,7 @@ print(" "*4,"}",sep="")
 @#add wl
 @[    if field.type.type == 'uint8']@
 
-    field = PyBytes_FromStringAndSize(src, size);
+    field = PyBytes_FromStringAndSize((const char *)src, size);
     
 @[    else]@
 
