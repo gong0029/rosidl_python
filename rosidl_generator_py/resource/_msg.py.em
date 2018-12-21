@@ -146,13 +146,11 @@ for field in spec.fields:
             print('\'%s/%s[]\',' % (field.type.pkg_name, field.type.type),end='')
         else:
             print('\'%s/%s\',' % (field.type.pkg_name, field.type.type),end='')
-    else :
-        print( get_python_type(field.type),',',end='')
+    else:
+        print('\'%s\',' % (field.type.type),end='')
 }@
     ]
-
 @# wl add end
-
 
 @
 @[if len(spec.fields) > 0]@
@@ -160,15 +158,11 @@ for field in spec.fields:
     def __init__(self, **kwargs):
     
         if kwargs:
-    
 @[  for field in spec.fields]@
 @[    if field.default_value]@
             self.@(field.name) = kwargs.get(
                 '@(field.name)', @(spec.base_type.type).@(field.name.upper())__DEFAULT)
 @[    else]@
-
-
-
 @[      if field.type.array_size and not field.type.is_upper_bound]@
 @[        if field.type.type == 'byte']@
             self.@(field.name) = kwargs.get(
@@ -197,16 +191,11 @@ for field in spec.fields:
 @[      end if]@
 @[    end if]@
 @[  end for]@
-        
         else:
-        
 @[  for field in spec.fields]@
 @[    if field.default_value]@
             self.@(field.name) = @(spec.base_type.type).@(field.name.upper())__DEFAULT
 @[    else]@
-
-
-
 @[      if field.type.array_size and not field.type.is_upper_bound]@
 @[        if field.type.type == 'byte']@
             self.@(field.name) = [bytes([0]) for x in range(@(field.type.array_size))]
@@ -215,7 +204,6 @@ for field in spec.fields:
             self.@(field.name) = [chr(0) for x in range(@(field.type.array_size))]
 @[        else]@
             self.@(field.name) = [@(get_python_type(field.type))() for x in range(@(field.type.array_size))]
-
 @[        end if]@
 @[      elif field.type.is_array]@
             self.@(field.name) = []
@@ -240,11 +228,7 @@ for field in spec.fields:
 @[      end if]@
 @[    end if]@
 @[  end for]@
-
-    
 @[end if]@
-            
-            
 
     def __repr__(self):
         typename = self.__class__.__module__.split('.')
