@@ -147,7 +147,10 @@ for field in spec.fields:
         else:
             print('\'%s/%s\',' % (field.type.pkg_name, field.type.type),end='')
     else:
-        print('\'%s\',' % (field.type.type),end='')
+        if field.type.is_array:
+            print('\'%s[]\',' % (field.type.type),end='')
+        else:
+            print('\'%s\',' % (field.type.type),end='')
 }@
     ]
 @# wl add end
