@@ -143,12 +143,18 @@ print(' ' * 4 * 2,end='')
 for field in spec.fields:
     if not field.type.is_primitive_type():
         if field.type.is_array:
-            print('\'%s/%s[]\',' % (field.type.pkg_name, field.type.type),end='')
+            if field.type.array_size:
+                print('\'%s/%s[%d]\',' % (field.type.pkg_name, field.type.type, field.type.array_size),end='')
+            else:
+                print('\'%s/%s[]\',' % (field.type.pkg_name, field.type.type),end='')
         else:
             print('\'%s/%s\',' % (field.type.pkg_name, field.type.type),end='')
     else:
         if field.type.is_array:
-            print('\'%s[]\',' % (field.type.type),end='')
+            if field.type.array_size:
+                print('\'%s[%d]\',' % (field.type.type,field.type.array_size),end='')
+            else:
+                print('\'%s[]\',' % (field.type.type),end='')
         else:
             print('\'%s\',' % (field.type.type),end='')
 }@
