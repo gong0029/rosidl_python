@@ -28,8 +28,8 @@ for field in spec.fields:
         print(field.type.pkg_name, end='')
         print('.msg.', end='')
         
-        module_name = convert_camel_case_to_lower_case_underscore(field.type.type)
-        print('_',module_name, sep='', end='')
+        zoro_module_name = convert_camel_case_to_lower_case_underscore(field.type.type)
+        print('_',zoro_module_name, sep='', end='')
  
         print(' import ',end='')
         print(field.type.type)
