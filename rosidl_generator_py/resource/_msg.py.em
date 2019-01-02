@@ -18,6 +18,8 @@ import logging
 import traceback
 
 @{  
+from rosidl_cmake import convert_camel_case_to_lower_case_underscore
+
 for field in spec.fields:
     if not field.type.is_primitive_type() and (not field.type.is_array or
           (field.type.array_size and not field.type.is_upper_bound)):
@@ -26,18 +28,12 @@ for field in spec.fields:
         print(field.type.pkg_name, end='')
         print('.msg.', end='')
         
-        for s in field.type.type:
-            if s.isalpha() and not s.islower():
-                print('_',end='')
-                print(s.lower(),end='')
-            else:
-                print(s,end='')
-                
+        module_name = convert_camel_case_to_lower_case_underscore(field.type.type)
+        print('_',module_name, sep='', end='')
+ 
         print(' import ',end='')
         print(field.type.type)
-
 }@
-
 
 class Metaclass(type):
     """Metaclass of message '@(spec.base_type.type)'."""
