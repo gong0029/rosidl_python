@@ -221,13 +221,16 @@ for field in spec.fields:
 @[      elif field.type.type == 'string']@
             self._@(field.name) =  ''
 @[      elif field.type.type in [
-        'float32', 'float64',
         'int8', 'uint8',
         'int16', 'uint16',
         'int32', 'uint32',
         'int64', 'uint64',
     ]]@
             self._@(field.name) =  0
+@[      elif field.type.type in [
+        'float32', 'float64',
+    ]]@
+            self._@(field.name) =  0.0
 @[      else]@
             self._@(field.name) = @(get_python_type(field.type))()
 @[      end if]@
