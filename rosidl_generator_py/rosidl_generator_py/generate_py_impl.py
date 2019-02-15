@@ -23,8 +23,13 @@ from rosidl_generator_c import primitive_msg_type_to_c
 from rosidl_parser import parse_message_file
 from rosidl_parser import parse_service_file
 
+from .generate_proto import get_protos_dir,get_package_name,msg2proto,cp_gen_py_to_proto,proto_gen_py
 
 def generate_py(generator_arguments_file, typesupport_impls):
+
+    protos_dir = get_protos_dir()
+    print(protos_dir)
+
     args = read_generator_arguments(generator_arguments_file)
 
     template_dir = args['template_dir']
@@ -79,6 +84,12 @@ def generate_py(generator_arguments_file, typesupport_impls):
         else:
             continue
 
+        if extension == '.msg':
+            print(ros_interface_file)
+            module_name, filename = get_package_name(ros_interface_file)
+
+            msg2proto(ros_interface_file, protos_dir, module_name, filename)
+
         module_name = convert_camel_case_to_lower_case_underscore(type_name)
         modules[subfolder].append((module_name, type_name))
         for template_file, generated_filenames in mapping.items():
@@ -109,6 +120,34 @@ def generate_py(generator_arguments_file, typesupport_impls):
                 f.write(import_line)
             for noqa_line in sorted(import_list.keys()):
                         f.write(noqa_line)
+
+        if subfolder == 'msg':
+            proto_moudle_name = os.path.basename(args['output_dir'])
+
+            proto_gen_py(proto_moudle_name)
+            cp_gen_py_to_proto(args['output_dir'],proto_moudle_name)
+
+            with open(os.path.join(args['output_dir'], 'proto', '__init__.py'), 'w') as f:
+                for import_line in sorted(import_list.values()):
+                    clazz = import_line[import_line.find(' import ')+8:].strip()
+                    import_line = import_line.strip()+ " as "+clazz+"_msg"
+                    f.write(import_line+'\n')
+
+                for import_line in sorted(import_list.values()):
+                    clazz = import_line[import_line.find(' import ') + 8:].strip()
+                    import_line = import_line[:import_line.index('.')]
+                    import_line += ".proto."+clazz+"_pb2 import "+clazz
+
+                    f.write(import_line+'\n')
+
+                for import_line in sorted(import_list.values()):
+                    clazz = import_line[import_line.find(' import ') + 8:].strip()
+
+                    f.write(clazz+".__class__.__import_type_support__ = "+clazz+
+                            "_msg.__class__.__import_type_support__\n")
+                    f.write(clazz + ".__class__.__import_type_support__()\n")
+                    f.write(clazz +".__class__._TYPE_SUPPORT = "+clazz+"_msg.__class__._TYPE_SUPPORT\n")
+
 
     for template_file, generated_filenames in mapping_msg_pkg_extension.items():
         for generated_filename in generated_filenames:
