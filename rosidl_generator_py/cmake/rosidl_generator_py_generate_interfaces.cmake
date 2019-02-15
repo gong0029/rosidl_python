@@ -35,6 +35,7 @@ set(_output_path
   "${CMAKE_CURRENT_BINARY_DIR}/rosidl_generator_py/${PROJECT_NAME}")
 set(_generated_extension_files "")
 set(_generated_msg_py_files "")
+set(_generated_proto_py_files "")
 set(_generated_msg_c_files "")
 set(_generated_srv_py_files "")
 set(_generated_srv_c_files "")
@@ -53,6 +54,10 @@ foreach(_idl_file ${rosidl_generate_interfaces_IDL_FILES})
     list(APPEND _generated_msg_py_files
       "${_output_path}/${_parent_folder}/_${_module_name}.py"
     )
+    list(APPEND _generated_proto_py_files
+      "${_output_path}/proto/${_msg_name1}_pb2.py"
+    )
+    
     list(APPEND _generated_msg_c_files
       "${_output_path}/${_parent_folder}/_${_module_name}_s.c"
     )
@@ -77,6 +82,14 @@ if(NOT _generated_msg_py_files STREQUAL "")
   list(GET _generated_msg_py_files 0 _msg_file)
   get_filename_component(_parent_folder "${_msg_file}" DIRECTORY)
   list(APPEND _generated_msg_py_files
+    "${_parent_folder}/__init__.py"
+  )
+endif()
+
+if(NOT _generated_proto_py_files STREQUAL "")
+  list(GET _generated_proto_py_files 0 _msg_file)
+  get_filename_component(_parent_folder "${_msg_file}" DIRECTORY)
+  list(APPEND _generated_proto_py_files
     "${_parent_folder}/__init__.py"
   )
 endif()
@@ -160,6 +173,9 @@ if(NOT rosidl_generate_interfaces_SKIP_INSTALL)
   if(NOT _msg_package_dir2 STREQUAL "")
     install(FILES ${_generated_msg_py_files}
       DESTINATION "${PYTHON_INSTALL_DIR}/${PROJECT_NAME}/${_msg_package_dir2}"
+    )
+    install(FILES ${_generated_proto_py_files}
+      DESTINATION "${PYTHON_INSTALL_DIR}/${PROJECT_NAME}/proto"
     )
   endif()
   if(NOT _srv_package_dir2 STREQUAL "")
