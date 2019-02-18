@@ -168,7 +168,8 @@ def msg2proto(msg_file_path, protos_dir,module_name,filename):
         if v_name not in var_names:
             var_names.append(v_name)
         else:
-            return
+            v = v+"_proto"
+            var_names.append(v_name+"_proto")
 
         fields.append('   ' + k + ' ' + v + ' = ' + str(idx) + ';' + c + '\n')
         idx += 1
