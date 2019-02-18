@@ -88,7 +88,7 @@ def generate_py(generator_arguments_file, typesupport_impls):
             print(ros_interface_file)
             module_name, filename = get_package_name(ros_interface_file)
 
-            msg2proto(ros_interface_file, protos_dir, module_name, filename)
+            msg2proto(ros_interface_file, protos_dir, args['package_name'], filename)
 
         module_name = convert_camel_case_to_lower_case_underscore(type_name)
         modules[subfolder].append((module_name, type_name))
