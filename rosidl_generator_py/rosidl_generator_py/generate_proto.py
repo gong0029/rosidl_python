@@ -33,7 +33,7 @@ subfolder = 'proto'
 
 def msg2proto(msg_file_path, protos_dir,module_name,filename):
 
-
+    var_names = []
 
     if not os.path.exists(protos_dir + '/{}'.format(module_name)):
         os.mkdir(protos_dir + '/{}'.format(module_name))
@@ -59,123 +59,131 @@ def msg2proto(msg_file_path, protos_dir,module_name,filename):
     package_name = module_name+".proto"
 
     type_name = os.path.splitext(os.path.basename(proto_file_path))[0]
+
+
+    fields = []
+    imports = []
+
+    fields.append('message ' + type_name + ' {\n')
+
+    idx = 1
+    for line in out:
+        if line.startswith('#') or len(line)==0:
+            continue
+
+        # with comment
+        if line.find('#') != -1:
+            kvc = line.split('#')
+            kv = kvc[0]
+            c  = kvc[1]
+            kv = kv.split()
+            k = kv[0]
+            v = kv[1]
+            c = ' //' + c
+        else:
+            kv = line.split()
+            k = kv[0]
+            v = kv[1]
+            c = ''
+
+        if k == 'float64':
+            k = 'double'
+        if k == 'byte':
+            k = 'int32'
+        if k == 'char':
+            k = 'int32'
+        if k == 'float32':
+            k = "float"
+        if k == 'int16':
+            k = 'int32'
+        if k == 'int8':
+            k = 'int32'
+        if k == 'uint16':
+            k = 'uint32'
+        if k == 'uint8':
+            k = 'uint32'
+        if k == 'int64':
+            k = 'sint64'
+
+        im_str = None
+        if k.strip() == 'MultiArrayDimension[]':
+            im_str = "import \"std_msgs/{}/MultiArrayDimension.proto\";\n".format(subfolder)
+        elif k.strip() == 'MultiArrayLayout':
+            im_str = "import \"std_msgs/{}/MultiArrayLayout.proto\";\n".format(subfolder)
+        elif k.find('/') >0 :
+            if k.find('[') >0 and k.find(']') >0:
+                sub_k = k[:k.find('[')].strip()
+                sub_k = sub_k[:sub_k.rindex('/')]+"/"+subfolder+ sub_k[sub_k.rindex('/'):]
+                im_str = "import \""+sub_k+".proto\";\n"
+            else:
+                sub_k = k[:k.rindex('/')] + "/" + subfolder + k[k.rindex('/'):]
+                im_str = "import \"" + sub_k.strip() + ".proto\";\n"
+
+            k = k[:k.rindex('/')] + "/" + subfolder + k[k.rindex('/'):]
+            k = k.replace('/','.')
+
+        elif k not in PRIMITIVE_TYPES and k.find('string')<0:
+            if k.find('[') > 0 and k.find(']') > 0:
+                sk = k[:k.find('[')]
+                if sk not in PRIMITIVE_TYPES:
+                    im_str = "import \"" + module_name + "/"+subfolder+"/" + k[:k.find('[')].strip() + ".proto\";\n"
+            else:
+                im_str = "import \"" + module_name+"/"+subfolder+"/"+k + ".proto\";\n"
+
+            # if im_str:
+            #     print("="*20, im_str)
+        if im_str and im_str not in imports:
+            imports.append(im_str)
+
+        if k.find('byte[') >=0 and k.find(']') >0:
+            k = "bytes " + k[k.find(']')+1:]
+        elif k.find('char[') >=0 and k.find(']') >0:
+            k = "repeated int32 " + k[k.find(']')+1:]
+        elif k.find('float32[') >=0 and k.find(']') >0:
+            k = "repeated float " + k[k.find(']')+1:]
+        elif k.find('float64[') >=0 and k.find(']') >0:
+            k = "repeated double " + k[k.find(']')+1:]
+        elif k.find('int16[') >= 0 and k.find(']') >0:
+            k = "repeated int32 " + k[k.find(']') + 1:]
+        elif k.find('int8[') >= 0 and k.find(']') >0:
+            k = "repeated int32 " + k[k.find(']') + 1:]
+        elif k.find('int64[') >= 0 and k.find(']') >0:
+            k = "repeated sint64 " + k[k.find(']') + 1:]
+        elif k.find('uint16[') >= 0 and k.find(']') >0:
+            k = "repeated uint32 " + k[k.find(']') + 1:]
+        elif k.find('uint8[') >= 0 and k.find(']') >0:
+            k = "repeated uint32 " + k[k.find(']') + 1:]
+        elif k.find('[') >0 and k.find(']') >0:
+            if k.find("string") == 0:
+                k = "repeated string"
+            else:
+                k = "repeated " + k[:k.find('[')]
+        elif k.find('string') ==0:
+            k = 'string'
+
+        if v.find('=') >= 0:
+            v = v[:v.find('=')]
+
+        v_name = v.lower()
+        if v_name not in var_names:
+            var_names.append(v_name)
+        else:
+            return
+
+        fields.append('   ' + k + ' ' + v + ' = ' + str(idx) + ';' + c + '\n')
+        idx += 1
+
     # write proto
     with open(proto_file_path, 'w') as fp:
         fp.write('syntax = "proto3";' + '\n')
 
-        fp.write('package '+package_name+";\n\n")
+        fp.write('package ' + package_name + ";\n\n")
 
         if hascomment:
             for line in out:
                 if line.startswith('#'):
                     line = line.replace('#', '//')
                     fp.write(line + '\n')
-
-        fields = []
-        imports = []
-
-        fields.append('message ' + type_name + ' {\n')
-
-        idx = 1
-        for line in out:
-            if line.startswith('#') or len(line)==0:
-                continue
-
-            # with comment
-            if line.find('#') != -1:
-                kvc = line.split('#')
-                kv = kvc[0]
-                c  = kvc[1]
-                kv = kv.split()
-                k = kv[0]
-                v = kv[1]
-                c = ' //' + c
-            else:
-                kv = line.split()
-                k = kv[0]
-                v = kv[1]
-                c = ''
-
-            if k == 'float64':
-                k = 'double'
-            if k == 'byte':
-                k = 'int32'
-            if k == 'char':
-                k = 'int32'
-            if k == 'float32':
-                k = "float"
-            if k == 'int16':
-                k = 'int32'
-            if k == 'int8':
-                k = 'int32'
-            if k == 'uint16':
-                k = 'uint32'
-            if k == 'uint8':
-                k = 'uint32'
-            if k == 'int64':
-                k = 'sint64'
-
-            im_str = None
-            if k.strip() == 'MultiArrayDimension[]':
-                im_str = "import \"std_msgs/{}/MultiArrayDimension.proto\";\n".format(subfolder)
-            elif k.strip() == 'MultiArrayLayout':
-                im_str = "import \"std_msgs/{}/MultiArrayLayout.proto\";\n".format(subfolder)
-            elif k.find('/') >0 :
-                if k.find('[') >0 and k.find(']') >0:
-                    sub_k = k[:k.find('[')].strip()
-                    sub_k = sub_k[:sub_k.rindex('/')]+"/"+subfolder+ sub_k[sub_k.rindex('/'):]
-                    im_str = "import \""+sub_k+".proto\";\n"
-                else:
-                    sub_k = k[:k.rindex('/')] + "/" + subfolder + k[k.rindex('/'):]
-                    im_str = "import \"" + sub_k.strip() + ".proto\";\n"
-
-                k = k[:k.rindex('/')] + "/" + subfolder + k[k.rindex('/'):]
-                k = k.replace('/','.')
-
-            elif k not in PRIMITIVE_TYPES and k.find('string')<0:
-                if k.find('[') > 0 and k.find(']') > 0:
-                    sk = k[:k.find('[')]
-                    if sk not in PRIMITIVE_TYPES:
-                        im_str = "import \"" + module_name + "/"+subfolder+"/" + k[:k.find('[')].strip() + ".proto\";\n"
-                else:
-                    im_str = "import \"" + module_name+"/"+subfolder+"/"+k + ".proto\";\n"
-
-                # if im_str:
-                #     print("="*20, im_str)
-            if im_str and im_str not in imports:
-                imports.append(im_str)
-
-            if k.find('byte[') >=0 and k.find(']') >0:
-                k = "bytes " + k[k.find(']')+1:]
-            elif k.find('char[') >=0 and k.find(']') >0:
-                k = "repeated int32 " + k[k.find(']')+1:]
-            elif k.find('float32[') >=0 and k.find(']') >0:
-                k = "repeated float " + k[k.find(']')+1:]
-            elif k.find('float64[') >=0 and k.find(']') >0:
-                k = "repeated double " + k[k.find(']')+1:]
-            elif k.find('int16[') >= 0 and k.find(']') >0:
-                k = "repeated int32 " + k[k.find(']') + 1:]
-            elif k.find('int8[') >= 0 and k.find(']') >0:
-                k = "repeated int32 " + k[k.find(']') + 1:]
-            elif k.find('int64[') >= 0 and k.find(']') >0:
-                k = "repeated sint64 " + k[k.find(']') + 1:]
-            elif k.find('uint16[') >= 0 and k.find(']') >0:
-                k = "repeated uint32 " + k[k.find(']') + 1:]
-            elif k.find('uint8[') >= 0 and k.find(']') >0:
-                k = "repeated uint32 " + k[k.find(']') + 1:]
-            elif k.find('[') >0 and k.find(']') >0:
-                if k.find("string") == 0:
-                    k = "repeated string"
-                else:
-                    k = "repeated " + k[:k.find('[')]
-            elif k.find('string') ==0:
-                k = 'string'
-
-            if v.find('=') >= 0:
-                v = v[:v.find('=')]
-
-            fields.append('   ' + k + ' ' + v + ' = ' + str(idx) + ';' + c + '\n')
-            idx += 1
 
         fields.append('}\n')
 
