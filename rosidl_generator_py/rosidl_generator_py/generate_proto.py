@@ -226,8 +226,14 @@ def get_package_name(msg_file_path):
 
 
 def proto_gen_py(module_name):
-    cmd = "/mnt/truenas/scratch/brewery/cellar/protobuf/3.6.1/bin/protoc -I " + get_protos_dir() \
-           + " --python_out=" + get_gen_py_dir() + " " + get_protos_dir()+"/"+module_name+"/{}/*.proto".format(subfolder)
+    if 'ZORO_ROOT_DIR' in os.environ:
+        proto_bin = os.path.join(os.environ['ZORO_ROOT_DIR'], 'bin','protoc')
+        cmd = proto_bin+" -I " + get_protos_dir() \
+              + " --python_out=" + get_gen_py_dir() + " " + get_protos_dir() + "/" + module_name + "/{}/*.proto".format(
+            subfolder)
+    else:
+        cmd = "/mnt/truenas/scratch/brewery/cellar/protobuf/3.6.1/bin/protoc -I " + get_protos_dir() \
+               + " --python_out=" + get_gen_py_dir() + " " + get_protos_dir()+"/"+module_name+"/{}/*.proto".format(subfolder)
 
     os.system(cmd)
 
