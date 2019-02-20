@@ -147,6 +147,7 @@ def generate_py(generator_arguments_file, typesupport_impls):
                             "_msg.__class__.__import_type_support__\n")
                     f.write(clazz + ".__import_type_support__()\n")
                     f.write(clazz +"._TYPE_SUPPORT = "+clazz+"_msg.__class__._TYPE_SUPPORT\n")
+                    f.write(clazz + "._use_proto_=True\n")
 
 
     for template_file, generated_filenames in mapping_msg_pkg_extension.items():
