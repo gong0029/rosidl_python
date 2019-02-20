@@ -143,10 +143,10 @@ def generate_py(generator_arguments_file, typesupport_impls):
                 for import_line in sorted(import_list.values()):
                     clazz = import_line[import_line.find(' import ') + 8:].strip()
 
-                    f.write(clazz+".__class__.__import_type_support__ = "+clazz+
+                    f.write(clazz+".__import_type_support__ = "+clazz+
                             "_msg.__class__.__import_type_support__\n")
-                    f.write(clazz + ".__class__.__import_type_support__()\n")
-                    f.write(clazz +".__class__._TYPE_SUPPORT = "+clazz+"_msg.__class__._TYPE_SUPPORT\n")
+                    f.write(clazz + ".__import_type_support__()\n")
+                    f.write(clazz +"._TYPE_SUPPORT = "+clazz+"_msg.__class__._TYPE_SUPPORT\n")
 
 
     for template_file, generated_filenames in mapping_msg_pkg_extension.items():
