@@ -226,7 +226,7 @@ def get_package_name(msg_file_path):
 
 
 def proto_gen_py(module_name):
-    if 'CA_ARGS' in os.environ:
+    if 'CI_ARGS' in os.environ:
         cmd = "/mnt/truenas/scratch/brewery/cellar/protobuf/3.6.1/bin/protoc -I " + get_protos_dir() \
               + " --python_out=" + get_gen_py_dir() + " " + get_protos_dir() + "/" + module_name + "/{}/*.proto".format(
             subfolder)
