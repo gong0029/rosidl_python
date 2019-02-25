@@ -145,14 +145,14 @@ def msg2proto(msg_file_path, protos_dir,module_name,filename):
             k = "repeated double " + k[k.find(']')+1:]
         elif k.find('int16[') >= 0 and k.find(']') >0:
             k = "repeated int32 " + k[k.find(']') + 1:]
+        elif k.find('uint8[') >= 0 and k.find(']') >0:
+            k = "bytes " + k[k.find(']') + 1:]
         elif k.find('int8[') >= 0 and k.find(']') >0:
             k = "repeated int32 " + k[k.find(']') + 1:]
         elif k.find('int64[') >= 0 and k.find(']') >0:
             k = "repeated sint64 " + k[k.find(']') + 1:]
         elif k.find('uint16[') >= 0 and k.find(']') >0:
             k = "repeated uint32 " + k[k.find(']') + 1:]
-        elif k.find('uint8[') >= 0 and k.find(']') >0:
-            k = "bytes " + k[k.find(']') + 1:]
         elif k.find('[') >0 and k.find(']') >0:
             if k.find("string") == 0:
                 k = "repeated string"
