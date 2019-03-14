@@ -306,11 +306,13 @@ print(" "*4,"}",sep="")
     if(PyBytes_Check(field)){
         Py_ssize_t size = PyBytes_Size(field);
 
+@[    if field.type.array_size is None or field.type.is_upper_bound]@
         if (!rosidl_generator_c__uint8__Array__init((rosidl_generator_c__uint8__Array *)&(ros_message->@(field.name)), size)) {
             PyErr_SetString(PyExc_RuntimeError, "unable to create uint8__Array ros_message");
             Py_DECREF(field);
             return NULL;
         }
+@[    end if]@
         
 @[    if field.type.array_size is None or field.type.is_upper_bound]@
     @primitive_msg_type_to_c(field.type.type) * dest = ros_message->@(field.name).data;
