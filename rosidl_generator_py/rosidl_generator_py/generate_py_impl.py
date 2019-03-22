@@ -128,10 +128,20 @@ def generate_py(generator_arguments_file, typesupport_impls):
             cp_gen_py_to_proto(args['output_dir'],proto_moudle_name)
 
             with open(os.path.join(args['output_dir'], 'proto', '__init__.py'), 'w') as f:
+                f.write('def set_proto_constants(msg_cls, proto_cls):\n')
+                f.write(' '*4+'for k,v in msg_cls.__class__._Metaclass__constants.items():\n')
+                f.write(' '*8+'if hasattr(proto_cls,k):\n')
+                f.write(' '*12+'raise Exception("%s has key: %s" % (str(CommonHander), k))\n')
+                f.write(' '*8+'else:\n')
+                f.write(' '*12+'setattr(proto_cls,k,v)\n')
+                f.write('\n')
+
                 for import_line in sorted(import_list.values()):
                     clazz = import_line[import_line.find(' import ')+8:].strip()
                     import_line = import_line.strip()+ " as "+clazz+"_msg"
                     f.write(import_line+'\n')
+
+                f.write('\n')
 
                 for import_line in sorted(import_list.values()):
                     clazz = import_line[import_line.find(' import ') + 8:].strip()
@@ -139,6 +149,8 @@ def generate_py(generator_arguments_file, typesupport_impls):
                     import_line += ".proto."+clazz+"_pb2 import "+clazz
 
                     f.write(import_line+'\n')
+
+                f.write('\n')
 
                 for import_line in sorted(import_list.values()):
                     clazz = import_line[import_line.find(' import ') + 8:].strip()
@@ -148,6 +160,14 @@ def generate_py(generator_arguments_file, typesupport_impls):
                     f.write(clazz + ".__import_type_support__()\n")
                     f.write(clazz +"._TYPE_SUPPORT = "+clazz+"_msg.__class__._TYPE_SUPPORT\n")
                     f.write(clazz + "._use_proto_=True\n")
+                f.write('\n')
+
+                for import_line in sorted(import_list.values()):
+                    msg_clazz = import_line[import_line.find(' import ') + 8:].strip()
+                    proto_clazz = msg_clazz
+                    msg_clazz = msg_clazz+"_msg"
+                    f.write('set_proto_constants(%s,%s)\n' % (msg_clazz,proto_clazz))
+                f.write('\n')
 
 
     for template_file, generated_filenames in mapping_msg_pkg_extension.items():

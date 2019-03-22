@@ -162,7 +162,8 @@ def msg2proto(msg_file_path, protos_dir,module_name,filename):
             k = 'string'
 
         if v.find('=') >= 0:
-            v = v[:v.find('=')]
+            continue
+            # v = v[:v.find('=')]
 
         v_name = v.lower()
         if v_name not in var_names:
