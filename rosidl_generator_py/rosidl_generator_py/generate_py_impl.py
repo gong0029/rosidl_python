@@ -131,7 +131,7 @@ def generate_py(generator_arguments_file, typesupport_impls):
                 f.write('def set_proto_constants(msg_cls, proto_cls):\n')
                 f.write(' '*4+'for k,v in msg_cls.__class__._Metaclass__constants.items():\n')
                 f.write(' '*8+'if hasattr(proto_cls,k):\n')
-                f.write(' '*12+'raise Exception("%s has key: %s" % (str(CommonHander), k))\n')
+                f.write(' '*12+'raise Exception("%s has key: %s" % (str(msg_cls), k))\n')
                 f.write(' '*8+'else:\n')
                 f.write(' '*12+'setattr(proto_cls,k,v)\n')
                 f.write('\n')
