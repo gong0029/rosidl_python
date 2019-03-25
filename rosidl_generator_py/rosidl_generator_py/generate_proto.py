@@ -1,6 +1,7 @@
 import os
 import glob
 
+
 PRIMITIVE_TYPES = [
     'double',
     'float',
@@ -26,12 +27,11 @@ PRIMITIVE_TYPES = [
     'uint16',
     'float32',
     'float64',
-
 ]
 
 subfolder = 'proto'
 
-def msg2proto(msg_file_path, protos_dir,module_name,filename):
+def msg2proto(spec, protos_dir,module_name,filename):
 
     var_names = []
 
@@ -42,24 +42,9 @@ def msg2proto(msg_file_path, protos_dir,module_name,filename):
     if not os.path.exists(os.path.dirname(proto_file_path)):
         os.makedirs(os.path.dirname(proto_file_path))
 
-    # read msg
-    with open(msg_file_path, 'r') as fp:
-        lines = fp.readlines()
-
-    out =[]
-    for line in lines:
-        line = line.strip()
-        out.append(line)
-
-    hascomment = False
-    for line in out:
-        if line.startswith('#'):
-            hascomment = True
-
     package_name = module_name+".proto"
 
     type_name = os.path.splitext(os.path.basename(proto_file_path))[0]
-
 
     fields = []
     imports = []
@@ -67,26 +52,9 @@ def msg2proto(msg_file_path, protos_dir,module_name,filename):
     fields.append('message ' + type_name + ' {\n')
 
     idx = 1
-    for line in out:
-        if line.startswith('#') or len(line)==0:
-            continue
-
-        # with comment
-        if line.find('#') != -1:
-            kvc = line.split('#')
-            kv = kvc[0]
-            c  = kvc[1]
-            kv = kv.split()
-            k = kv[0]
-            v = kv[1]
-            c = ' //' + c
-        else:
-            if line.find(' '):
-                k = line[:line.index(' ')]
-                v = line[line.index(' ')+1:]
-            else:
-                continue
-            c = ''
+    for fi in spec.fields:
+        k = str(fi.type)
+        v = fi.name
 
         if k == 'float64':
             k = 'double'
@@ -132,8 +100,6 @@ def msg2proto(msg_file_path, protos_dir,module_name,filename):
             else:
                 im_str = "import \"" + module_name+"/"+subfolder+"/"+k + ".proto\";\n"
 
-            # if im_str:
-            #     print("="*20, im_str)
         if im_str and im_str not in imports:
             imports.append(im_str)
 
@@ -174,7 +140,7 @@ def msg2proto(msg_file_path, protos_dir,module_name,filename):
             v = v+"_proto"
             var_names.append(v_name+"_proto")
 
-        fields.append('   ' + k + ' ' + v + ' = ' + str(idx) + ';' + c + '\n')
+        fields.append('   ' + k + ' ' + v + ' = ' + str(idx) + ';' + '\n')
         idx += 1
 
     # write proto
@@ -182,12 +148,6 @@ def msg2proto(msg_file_path, protos_dir,module_name,filename):
         fp.write('syntax = "proto3";' + '\n')
 
         fp.write('package ' + package_name + ";\n\n")
-
-        if hascomment:
-            for line in out:
-                if line.startswith('#'):
-                    line = line.replace('#', '//')
-                    fp.write(line + '\n')
 
         fields.append('}\n')
 
