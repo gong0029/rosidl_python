@@ -81,9 +81,11 @@ def msg2proto(msg_file_path, protos_dir,module_name,filename):
             v = kv[1]
             c = ' //' + c
         else:
-            kv = line.split()
-            k = kv[0]
-            v = kv[1]
+            if line.find(' '):
+                k = line[:line.index(' ')]
+                v = line[line.index(' ')+1:]
+            else:
+                continue
             c = ''
 
         if k == 'float64':
