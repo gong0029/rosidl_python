@@ -116,6 +116,31 @@ class @(spec.base_type.type)(metaclass=Metaclass):
 @[end for]@
     ]
 
+@# wl add
+    _slot_types = [
+@{
+print(' ' * 4 * 2,end='')
+for field in spec.fields:
+    if not field.type.is_primitive_type():
+        if field.type.is_array:
+            if field.type.array_size:
+                print('\'%s/%s[%d]\',' % (field.type.pkg_name, field.type.type, field.type.array_size),end='')
+            else:
+                print('\'%s/%s[]\',' % (field.type.pkg_name, field.type.type),end='')
+        else:
+            print('\'%s/%s\',' % (field.type.pkg_name, field.type.type),end='')
+    else:
+        if field.type.is_array:
+            if field.type.array_size:
+                print('\'%s[%d]\',' % (field.type.type,field.type.array_size),end='')
+            else:
+                print('\'%s[]\',' % (field.type.type),end='')
+        else:
+            print('\'%s\',' % (field.type.type),end='')
+}@
+    ]
+@# wl add end
+
     _fields_and_field_types = {
 @[for field in spec.fields]@
 @[  if field.type.is_primitive_type() ]@
@@ -234,6 +259,7 @@ if field.name in dict(inspect.getmembers(builtins)).keys():
 @[  elif field.type.type in ['char']]@
             from collections import UserString
 @[  end if]@
+@#=====================array============================
             assert \
 @[  if field.type.is_array]@
                 ((isinstance(value, Sequence) or
@@ -255,21 +281,24 @@ if field.name in dict(inspect.getmembers(builtins)).keys():
 @{assert_msg_suffixes.insert(1, 'with length %d' % field.type.array_size)}@
 @[      end if]@
 @[    end if]@
-                 all(isinstance(v, @(get_python_type(field.type))) for v in value) and
+                 True and
+@#                 all(isinstance(v, @(get_python_type(field.type))) for v in value) and
 @{assert_msg_suffixes.append("and each value of type '%s'" % get_python_type(field.type))}@
 @[    if field.type.type.startswith('int')]@
 @{
 nbits = int(field.type.type[3:])
 bound = 2**(nbits - 1)
 }@
-                 all(val >= -@(bound) and val < @(bound) for val in value)), \
+                 True), \
+@#                 all(val >= -@(bound) and val < @(bound) for val in value)), \
 @{assert_msg_suffixes.append('and each integer in [%d, %d]' % (-bound, bound - 1))}@
 @[    elif field.type.type.startswith('uint')]@
 @{
 nbits = int(field.type.type[4:])
 bound = 2**nbits
 }@
-                 all(val >= 0 and val < @(bound) for val in value)), \
+                 True), \
+@#                 all(val >= 0 and val < @(bound) for val in value)), \
 @{assert_msg_suffixes.append('and each unsigned integer in [0, %d]' % (bound - 1))}@
 @[    elif field.type.type == 'char']@
                  all(ord(val) >= -128 and ord(val) < 128 for val in value)), \
@@ -278,6 +307,9 @@ bound = 2**nbits
                  True), \
 @[    end if]@
                 "The '@(field.name)' field must be @(' '.join(assert_msg_suffixes))"
+
+@#==============================================
+
 @[  elif field.type.string_upper_bound]@
                 ((isinstance(value, str) or isinstance(value, UserString)) and
                  len(value) <= @(field.type.string_upper_bound)), \

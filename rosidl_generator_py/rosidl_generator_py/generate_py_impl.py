@@ -25,8 +25,16 @@ from rosidl_parser import parse_action_file
 from rosidl_parser import parse_message_file
 from rosidl_parser import parse_service_file
 
+from .generate_proto import get_protos_dir,get_package_name,msg2proto,cp_gen_py_to_proto,proto_gen_py
+
 
 def generate_py(generator_arguments_file, typesupport_impls):
+    print(generator_arguments_file,"="*20)
+    print(typesupport_impls,"="*20)
+
+    protos_dir = get_protos_dir()
+    print(protos_dir)
+
     args = read_generator_arguments(generator_arguments_file)
 
     template_dir = args['template_dir']
@@ -93,6 +101,11 @@ def generate_py(generator_arguments_file, typesupport_impls):
         else:
             continue
 
+        if extension == '.msg':
+            print(ros_interface_file)
+            _, filename = get_package_name(ros_interface_file)
+            msg2proto(spec, protos_dir, args['package_name'], filename)
+
         module_name = convert_camel_case_to_lower_case_underscore(type_name)
         modules[subfolder].append((module_name, type_name))
         for template_file, generated_filenames in mapping.items():
@@ -140,6 +153,56 @@ def generate_py(generator_arguments_file, typesupport_impls):
                 ['# END %s\n' % block_name]
             ) + content
             f.write(content)
+
+
+        if subfolder == 'msg':
+            proto_moudle_name = os.path.basename(args['output_dir'])
+
+            proto_gen_py(proto_moudle_name)
+            cp_gen_py_to_proto(args['output_dir'],proto_moudle_name)
+
+            with open(os.path.join(args['output_dir'], 'proto', '__init__.py'), 'w') as f:
+                f.write('def set_proto_constants(msg_cls, proto_cls):\n')
+                f.write(' '*4+'for k,v in msg_cls.__class__._Metaclass__constants.items():\n')
+                f.write(' '*8+'if hasattr(proto_cls,k):\n')
+                f.write(' '*12+'raise Exception("%s has key: %s" % (str(msg_cls), k))\n')
+                f.write(' '*8+'else:\n')
+                f.write(' '*12+'setattr(proto_cls,k,v)\n')
+                f.write('\n')
+
+                for import_line in sorted(import_list.values()):
+                    clazz = import_line[import_line.find(' import ')+8:].strip()
+                    import_line = import_line.strip()+ " as "+clazz+"_msg"
+                    f.write(import_line+'\n')
+
+                f.write('\n')
+
+                for import_line in sorted(import_list.values()):
+                    clazz = import_line[import_line.find(' import ') + 8:].strip()
+                    import_line = import_line[:import_line.index('.')]
+                    import_line += ".proto."+clazz+"_pb2 import "+clazz
+
+                    f.write(import_line+'\n')
+
+                f.write('\n')
+
+                for import_line in sorted(import_list.values()):
+                    clazz = import_line[import_line.find(' import ') + 8:].strip()
+
+                    f.write(clazz+".__import_type_support__ = "+clazz+
+                            "_msg.__class__.__import_type_support__\n")
+                    f.write(clazz + ".__import_type_support__()\n")
+                    f.write(clazz +"._TYPE_SUPPORT = "+clazz+"_msg.__class__._TYPE_SUPPORT\n")
+                    f.write(clazz + "._use_proto_=True\n")
+                f.write('\n')
+
+                for import_line in sorted(import_list.values()):
+                    msg_clazz = import_line[import_line.find(' import ') + 8:].strip()
+                    proto_clazz = msg_clazz
+                    msg_clazz = msg_clazz+"_msg"
+                    f.write('set_proto_constants(%s,%s)\n' % (msg_clazz,proto_clazz))
+                f.write('\n')
+
 
     for template_file, generated_filenames in mapping_msg_pkg_extension.items():
         for generated_filename in generated_filenames:
