@@ -35,6 +35,7 @@ set(_output_path
   "${CMAKE_CURRENT_BINARY_DIR}/rosidl_generator_py/${PROJECT_NAME}")
 set(_generated_extension_files "")
 set(_generated_msg_py_files "")
+set(_generated_proto_py_files "")
 set(_generated_msg_c_files "")
 set(_generated_srv_py_files "")
 set(_generated_srv_c_files "")
