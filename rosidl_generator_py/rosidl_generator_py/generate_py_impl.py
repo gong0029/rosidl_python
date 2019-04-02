@@ -161,6 +161,11 @@ def generate_py(generator_arguments_file, typesupport_impls):
             proto_gen_py(proto_moudle_name)
             cp_gen_py_to_proto(args['output_dir'],proto_moudle_name)
 
+            def get_filter_line(line):
+                if line.find('#') > 0:
+                    line = line[:line.index('#')]
+                return line
+
             with open(os.path.join(args['output_dir'], 'proto', '__init__.py'), 'w') as f:
                 f.write('def set_proto_constants(msg_cls, proto_cls):\n')
                 f.write(' '*4+'for k,v in msg_cls.__class__._Metaclass__constants.items():\n')
@@ -171,6 +176,7 @@ def generate_py(generator_arguments_file, typesupport_impls):
                 f.write('\n')
 
                 for import_line in sorted(import_list.values()):
+                    import_line = get_filter_line(import_line)
                     clazz = import_line[import_line.find(' import ')+8:].strip()
                     import_line = import_line.strip()+ " as "+clazz+"_msg"
                     f.write(import_line+'\n')
@@ -178,6 +184,7 @@ def generate_py(generator_arguments_file, typesupport_impls):
                 f.write('\n')
 
                 for import_line in sorted(import_list.values()):
+                    import_line = get_filter_line(import_line)
                     clazz = import_line[import_line.find(' import ') + 8:].strip()
                     import_line = import_line[:import_line.index('.')]
                     import_line += ".proto."+clazz+"_pb2 import "+clazz
@@ -187,6 +194,7 @@ def generate_py(generator_arguments_file, typesupport_impls):
                 f.write('\n')
 
                 for import_line in sorted(import_list.values()):
+                    import_line = get_filter_line(import_line)
                     clazz = import_line[import_line.find(' import ') + 8:].strip()
 
                     f.write(clazz+".__import_type_support__ = "+clazz+
@@ -197,6 +205,7 @@ def generate_py(generator_arguments_file, typesupport_impls):
                 f.write('\n')
 
                 for import_line in sorted(import_list.values()):
+                    import_line = get_filter_line(import_line)
                     msg_clazz = import_line[import_line.find(' import ') + 8:].strip()
                     proto_clazz = msg_clazz
                     msg_clazz = msg_clazz+"_msg"
