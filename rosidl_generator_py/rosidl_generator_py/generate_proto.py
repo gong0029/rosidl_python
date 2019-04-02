@@ -8,6 +8,7 @@ PRIMITIVE_TYPES = [
     'int32',
     'uint32',
     'uint64',
+    'int64',
     'sint32',
     'sint64',
     'fixed32',
@@ -73,7 +74,7 @@ def msg2proto(spec, protos_dir,module_name,filename):
         if k == 'uint8':
             k = 'uint32'
         if k == 'int64':
-            k = 'sint64'
+            k = 'int64'
 
         im_str = None
         if k.strip() == 'MultiArrayDimension[]':
@@ -118,7 +119,7 @@ def msg2proto(spec, protos_dir,module_name,filename):
         elif k.find('int8[') >= 0 and k.find(']') >0:
             k = "repeated int32 " + k[k.find(']') + 1:]
         elif k.find('int64[') >= 0 and k.find(']') >0:
-            k = "repeated sint64 " + k[k.find(']') + 1:]
+            k = "repeated int64 " + k[k.find(']') + 1:]
         elif k.find('uint16[') >= 0 and k.find(']') >0:
             k = "repeated uint32 " + k[k.find(']') + 1:]
         elif k.find('[') >0 and k.find(']') >0:
