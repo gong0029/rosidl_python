@@ -104,29 +104,31 @@ def msg2proto(spec, protos_dir,module_name,filename):
         if im_str and im_str not in imports:
             imports.append(im_str)
 
-        if k.find('byte[') >=0 and k.find(']') >0:
-            k = "bytes " + k[k.find(']')+1:]
-        elif k.find('char[') >=0 and k.find(']') >0:
-            k = "repeated int32 " + k[k.find(']')+1:]
-        elif k.find('float32[') >=0 and k.find(']') >0:
-            k = "repeated float " + k[k.find(']')+1:]
-        elif k.find('float64[') >=0 and k.find(']') >0:
-            k = "repeated double " + k[k.find(']')+1:]
-        elif k.find('int16[') >= 0 and k.find(']') >0:
-            k = "repeated int32 " + k[k.find(']') + 1:]
-        elif k.find('uint8[') >= 0 and k.find(']') >0:
-            k = "bytes " + k[k.find(']') + 1:]
-        elif k.find('int8[') >= 0 and k.find(']') >0:
-            k = "repeated int32 " + k[k.find(']') + 1:]
-        elif k.find('int64[') >= 0 and k.find(']') >0:
-            k = "repeated int64 " + k[k.find(']') + 1:]
-        elif k.find('uint16[') >= 0 and k.find(']') >0:
-            k = "repeated uint32 " + k[k.find(']') + 1:]
-        elif k.find('[') >0 and k.find(']') >0:
-            if k.find("string") == 0:
-                k = "repeated string"
-            else:
-                k = "repeated " + k[:k.find('[')]
+        if k.find('[') >0 and k.find(']') >0:
+            cmp_str = k[:k.index('[')+1].strip()
+            if cmp_str == 'byte[':
+                k = "bytes " + k[k.find(']')+1:]
+            elif cmp_str == 'char[':
+                k = "repeated int32 " + k[k.find(']')+1:]
+            elif cmp_str == 'float32[':
+                k = "repeated float " + k[k.find(']')+1:]
+            elif cmp_str == 'float64[':
+                k = "repeated double " + k[k.find(']')+1:]
+            elif cmp_str == 'int16[':
+                k = "repeated int32 " + k[k.find(']') + 1:]
+            elif cmp_str == 'uint8[':
+                k = "bytes " + k[k.find(']') + 1:]
+            elif cmp_str == 'int8[':
+                k = "repeated int32 " + k[k.find(']') + 1:]
+            elif cmp_str == 'int64[':
+                k = "repeated int64 " + k[k.find(']') + 1:]
+            elif cmp_str == 'uint16[':
+                k = "repeated uint32 " + k[k.find(']') + 1:]
+            elif k.find('[') >0 and k.find(']') >0:
+                if k.find("string") == 0:
+                    k = "repeated string"
+                else:
+                    k = "repeated " + k[:k.index('[')]
         elif k.find('string') ==0:
             k = 'string'
 
