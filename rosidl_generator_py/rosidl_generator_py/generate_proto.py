@@ -62,13 +62,13 @@ def msg2proto(spec, protos_dir,module_name,filename):
         if k == 'byte':
             k = 'int32'
         if k == 'char':
-            k = 'int32'
+            k = 'sint32'
         if k == 'float32':
             k = "float"
         if k == 'int16':
-            k = 'int32'
+            k = 'sint32'
         if k == 'int8':
-            k = 'int32'
+            k = 'sint32'
         if k == 'uint16':
             k = 'uint32'
         if k == 'uint8':
@@ -109,17 +109,17 @@ def msg2proto(spec, protos_dir,module_name,filename):
             if cmp_str == 'byte[':
                 k = "bytes " + k[k.find(']')+1:]
             elif cmp_str == 'char[':
-                k = "repeated int32 " + k[k.find(']')+1:]
+                k = "repeated sint32 " + k[k.find(']')+1:]
             elif cmp_str == 'float32[':
                 k = "repeated float " + k[k.find(']')+1:]
             elif cmp_str == 'float64[':
                 k = "repeated double " + k[k.find(']')+1:]
             elif cmp_str == 'int16[':
-                k = "repeated int32 " + k[k.find(']') + 1:]
+                k = "repeated sint32 " + k[k.find(']') + 1:]
             elif cmp_str == 'uint8[':
                 k = "bytes " + k[k.find(']') + 1:]
             elif cmp_str == 'int8[':
-                k = "repeated int32 " + k[k.find(']') + 1:]
+                k = "repeated sint32 " + k[k.find(']') + 1:]
             elif cmp_str == 'int64[':
                 k = "repeated int64 " + k[k.find(']') + 1:]
             elif cmp_str == 'uint16[':
